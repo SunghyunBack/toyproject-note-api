@@ -6,7 +6,7 @@
 | 필드 | 타입 | 규칙 |
 |---|---|---|
 | id | Long | 자동 생성 |
-| title | String | 필수, 1~100자 |\
+| title | String | 필수, 1~100자 |
 | content | String | 마크다운 본문, 빈 값 허용 |
 | tags | Set<String> | 0개 이상, 태그당 1~20자 |
 | createdAt | LocalDateTime | 생성 시 자동 |

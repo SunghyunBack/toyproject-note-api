@@ -31,6 +31,82 @@
 
 ---
 
+## 0.5 기술 스택 분류: 지금 쓰는 것들을 어디에 놓아야 하나
+
+### 0.5.1 분류 기준 세 가지
+기술은 하나의 기준으로만 나누면 헷갈려. 아래 세 가지 질문을 따로따로 던지면 정리돼.
+
+**① 어디서 실행되나? (실행 위치)**
+| 구분 | 의미 | 예 |
+|---|---|---|
+| 프론트엔드(Frontend) | 사용자 브라우저/앱에서 실행. 화면을 그리고 입력을 받음 | HTML, CSS, JavaScript, React |
+| 백엔드(Backend) | 서버에서 실행. 요청을 받아 로직을 처리하고 데이터를 저장 | Java + Spring Boot |
+| 데이터베이스(Database) | 데이터를 영구 저장하고 조회 | H2, PostgreSQL |
+| 인프라(Infra) | 위의 것들을 띄우고 운영하는 환경 | Docker, 서버, IIS |
+
+**② 어떤 층(Layer)에 속하나? (아래로 갈수록 기반)**
+| 층 | 의미 | 예 |
+|---|---|---|
+| 언어(Language) | 코드를 쓰는 문법 | Java |
+| 런타임(Runtime) | 그 언어로 만든 프로그램을 실제로 실행하는 환경 | JVM (JDK에 포함) |
+| 프레임워크(Framework) | 앱의 뼈대와 실행 흐름을 정해주는 큰 틀 | Spring Boot |
+| 라이브러리(Library) | 특정 기능만 제공하는 부품 | Hibernate, Jackson |
+
+**③ 언제 쓰이나? (개발 시점 vs 실행 시점)**
+- 실행 시점(Runtime)에 앱 안에 포함돼서 같이 돌아가는 것: Spring Boot, Hibernate, H2 등
+- 개발 시점(Development time)에만 쓰고, 최종 앱에는 포함되지 않는 도구: Gradle, VS Code, Git, JUnit, Claude
+
+### 0.5.2 프레임워크와 라이브러리의 차이
+- **라이브러리**: **내 코드가** 라이브러리를 호출해. 예를 들어 내가 `objectMapper.writeValueAsString(note)`처럼 직접 불러서 쓰는 식이야.
+- **프레임워크**: **프레임워크가** 내 코드를 호출해. 나는 `@RestController` 클래스를 만들어두기만 하고, 언제 실행할지는 Spring이 HTTP 요청이 들어올 때 정해.
+- 이렇게 제어 흐름의 주도권이 넘어가는 걸 **제어의 역전(IoC, Inversion of Control)**이라고 해. Spring 컨테이너를 "IoC 컨테이너"라고 부르는 이유야.
+- Revit으로 비유하면: 네가 만든 `IExternalCommand.Execute()`는 네가 직접 호출하는 게 아니라 Revit이 호출하지? 그 구조에서 Revit API는 프레임워크 역할을 하는 거야.
+
+### 0.5.3 이 프로젝트의 기술 지도 (현재)
+
+| 실행 위치 | 층 | 기술 | 이 프로젝트에서 하는 일 |
+|---|---|---|---|
+| **백엔드** | 언어 | Java 25 | 모든 서버 코드 |
+| | 런타임 | JVM (Temurin JDK 25) | Java 코드 실행 |
+| | 프레임워크 | Spring Boot 4.1 | 앱 뼈대, 자동 설정, DI 컨테이너 |
+| | 프레임워크 (Spring 하위) | Spring MVC | HTTP 요청을 Controller로 연결 |
+| | 프레임워크 (Spring 하위) | Spring Data JPA | Repository 인터페이스 자동 구현 |
+| | 라이브러리 | Hibernate | JPA 구현체. 객체 ↔ SQL 변환 |
+| | 라이브러리 | Hibernate Validator | `@NotBlank` 같은 입력 검증 |
+| | 라이브러리 | Jackson | Java 객체 ↔ JSON 변환 |
+| | 라이브러리 | HikariCP | DB 커넥션 풀 |
+| | 웹 서버 | 내장 Tomcat | HTTP 요청 수신 |
+| **데이터베이스** | DB | H2 (메모리 모드) | 노트 저장. 나중에 PostgreSQL로 교체 |
+| **프론트엔드** | - | **아직 없음** (MVP 범위 밖) | 지금은 브라우저 주소창, curl, HTTP 클라이언트로 API를 직접 호출해서 확인 |
+| **통신 규약** | - | HTTP + REST + JSON | 프론트와 백엔드가 주고받는 약속 |
+| **개발 도구** | 빌드 | Gradle 9.7.1 (설정 언어: Groovy) | 의존성 다운로드, 컴파일, 테스트 |
+| | 테스트 | JUnit 5, AssertJ, Mockito | 테스트 실행, 검증, 가짜 객체(Mock) |
+| | 에디터 | VS Code | 코드 작성 |
+| | 버전 관리 | Git + GitHub | 변경 기록, 원격 백업 |
+| | AI | Claude | 학습, 코드 가이드 |
+| **설정/문서** | 형식 | `.properties`, Markdown | 앱 설정, 문서 |
+
+### 0.5.4 요청 하나가 흘러가는 길
+```
+[클라이언트: 브라우저/curl]           ← 프론트엔드 자리 (지금은 비어 있음)
+      │  HTTP 요청 (JSON)
+      ▼
+[내장 Tomcat]                         ← 웹 서버
+      ▼
+[Spring MVC → NoteController]         ← 백엔드: 표현 계층 (Presentation)
+      ▼
+[NoteService]                         ← 백엔드: 비즈니스 계층 (Business)
+      ▼
+[NoteRepository (Spring Data JPA)]    ← 백엔드: 영속 계층 (Persistence)
+      ▼
+[Hibernate → JDBC]                    ← 라이브러리: SQL 생성, 실행
+      ▼
+[H2]                                  ← 데이터베이스
+```
+나중에 프론트엔드를 만들면 맨 위 클라이언트 자리에 들어가. 백엔드는 바꿀 필요 없이 같은 JSON API를 그대로 쓰면 돼. 프론트와 백엔드를 이렇게 HTTP로 분리해두면 서로 독립적으로 바꿀 수 있어.
+
+---
+
 ## 1. JDK (Java Development Kit)
 
 - **무엇**: 자바 컴파일러(`javac`), 실행기(`java`), 표준 라이브러리를 묶은 개발 도구 모음
@@ -181,6 +257,63 @@ tasks.named('test') {
 - 둘 다 `.gitignore`에 포함돼 있어.
 - `build/resolvedMainClassName`: `bootRun`이나 `bootJar`를 실행할 때 Gradle이 찾아낸 main 클래스 이름을 기록한 파일이야. 이 파일이 있다는 건 해당 태스크가 한 번 실행됐다는 뜻이야.
 
+### 4.2 소스 세트(Source Set): `src/main`과 `src/test`는 다른 세계야
+- Gradle은 `src/main/java`와 `src/test/java`를 **별도의 소스 세트**로 컴파일해. 각각 사용할 수 있는 라이브러리 목록(클래스패스, Classpath)이 달라.
+
+| 소스 세트 | 볼 수 있는 라이브러리 |
+|---|---|
+| `main` | `implementation`, `runtimeOnly`(실행 시) |
+| `test` | `main`의 모든 것 + `testImplementation`, `testRuntimeOnly` + `main`의 클래스들 |
+
+- 그래서 **테스트 파일을 `src/main`에 만들면** JUnit(`@Test`)과 AssertJ(`assertThat`)를 찾을 수 없어. 이 라이브러리들은 `testImplementation`이라서 main에서는 아예 보이지 않거든.
+- 이 경우 VS Code의 빠른 수정(Quick Fix, 노란 전구)에도 import 제안이 안 나와. 해당 소스 세트의 클래스패스에 그 클래스가 없으니까 추천할 후보가 없는 거야.
+- 테스트 파일은 **같은 패키지 경로를 `src/test/java` 아래에** 만들어야 해.
+  - 운영 코드: `src/main/java/com/sunghyun/note/domain/Note.java`
+  - 테스트 코드: `src/test/java/com/sunghyun/note/domain/NoteTest.java`
+- 패키지가 같으면 테스트에서 `Note`를 import 없이 쓸 수 있고, `protected`나 package-private 멤버에도 접근할 수 있어.
+
+### 4.3 VS Code import 단축키
+- `Ctrl + .`: 커서 위치의 빠른 수정(Quick Fix). 노란 전구와 같은 기능이야.
+- `Shift + Alt + O`: 파일 전체의 import 정리(Organize Imports). 빠진 import를 추가하고 안 쓰는 import는 지워.
+- 둘 다 Java 언어 서버가 프로젝트를 인식한 상태에서만 동작해. 상태 표시줄에 `Java: Ready`가 보여야 해.
+
+### 4.4 정적 임포트(Static Import)
+- `assertThat`은 `org.assertj.core.api.Assertions` 클래스의 **static 메서드**야. 원래는 `Assertions.assertThat(...)`처럼 클래스 이름을 붙여서 호출해야 해.
+- `import static org.assertj.core.api.Assertions.assertThat;`을 쓰면 클래스 이름 없이 `assertThat(...)`만으로 호출할 수 있어.
+- 일반 `import`는 **클래스**를 가져오고, `import static`은 클래스 안의 **static 멤버(메서드, 상수)**를 가져와.
+- 이게 없으면 컴파일러는 `assertThat`을 현재 클래스(`NoteTest`)에 있는 메서드로 찾아. 그래서 에러 메시지가 `The method assertThat(String) is undefined for the type NoteTest`("NoteTest에 그런 메서드가 없다")로 나와.
+- `Shift+Alt+O`(Organize Imports)는 static import를 자동으로 추가해주지 않는 경우가 많아. 그럴 때는 직접 입력하거나, `Ctrl + .`의 "Add static import"를 써.
+- `import static org.assertj.core.api.Assertions.*;`처럼 `*`로 전부 가져올 수도 있어. 편하지만 어떤 메서드가 어디서 왔는지 코드만 보고는 알기 어려워져서, 학습 중에는 하나씩 적는 걸 추천해.
+
+#### 4.4.1 왜 클래스는 전구로 import되는데 `assertThat`은 안 되나
+- **클래스 이름이 없을 때** (`Test`, `List` 등)
+  - 컴파일러는 문법 위치를 보고 "이건 **타입 이름**이다"라는 걸 알아.
+  - VS Code Java(Eclipse JDT 기반)는 클래스패스에 있는 **모든 클래스를 이름으로 색인(Index)**해두고 있어. 그래서 같은 이름의 클래스를 찾아서 import를 제안할 수 있어.
+- **이름만 있는 메서드 호출일 때** (`assertThat(...)`)
+  - Java 규칙상, 앞에 아무것도 붙지 않은 메서드 호출은 **현재 클래스 → 부모 클래스 → 바깥 클래스 → static import** 순서로 찾아.
+  - 그래서 에러가 "NoteTest에 이 메서드가 없다"로 나오고, 빠른 수정도 기본적으로는 "NoteTest에 `assertThat` 메서드를 만들까?"를 제안해.
+  - 언어 서버는 모든 클래스의 static 메서드까지 이름으로 뒤져서 제안하지는 않아. `assertThat`만 해도 AssertJ, Hamcrest 등 여러 라이브러리에 같은 이름이 있어서 후보가 애매하거든.
+- **해결: 즐겨찾기 static 멤버 등록**
+  - `java.completion.favoriteStaticMembers` 설정에 등록한 클래스의 static 멤버는 자동완성(`Ctrl+Space`)과 빠른 수정의 후보로 쓰여.
+  - 기본값에는 JUnit 5의 `Assertions`와 Mockito는 들어 있지만 **AssertJ는 없어.** 그래서 직접 추가해야 해.
+  - 이 설정은 기본값 목록을 **덮어쓰는** 방식이라, 기본값에 있던 항목도 같이 적어줘야 해.
+- C#의 `using static`도 같은 개념이고, Visual Studio에서도 비슷한 제약이 있어.
+
+### 4.5 Java는 대소문자를 구분해
+- `isEqualTo`와 `isequalTo`는 완전히 다른 이름이야. 메서드 이름은 보통 카멜 케이스(camelCase)로, 단어가 시작될 때마다 대문자를 써.
+- 직접 타이핑할 때는 자동완성(`Ctrl + Space`)으로 고르면 이런 오타를 막을 수 있어.
+
+### 4.6 `BUILD SUCCESSFUL`을 믿어도 되나: 테스트 결과 읽는 법
+- `BUILD SUCCESSFUL`은 "**실행된** 태스크 중에 실패한 게 없다"는 뜻이야. "내 코드가 맞다"는 뜻이 아니야.
+- 성공처럼 보여도 실제로는 확인이 안 된 경우
+  1. **테스트가 아예 실행되지 않음**: 테스트 파일이 `src/main`에 있거나, 저장이 안 됐거나, `@Test`가 빠졌으면 테스트 개수가 0개인데도 성공으로 나와.
+  2. **이전 결과를 재사용함**: 코드가 바뀌지 않았으면 Gradle이 테스트를 건너뛰고 `UP-TO-DATE`로 표시해. 이건 정상 동작이고, 강제로 다시 돌리려면 `.\gradlew.bat test --rerun`을 써.
+  3. **테스트가 검증하지 않는 부분이 틀림**: 테스트는 **작성한 것만** 검증해. 예를 들어 도메인 테스트는 JPA 매핑(`@Entity`)을 검사하지 않아.
+- 확인하는 방법
+  - **HTML 리포트**: `build/reports/tests/test/index.html`을 브라우저로 열면 테스트 개수, 성공/실패, 실행 시간, 그리고 각 테스트의 출력 로그(Standard output 탭)를 볼 수 있어.
+  - **터미널에 테스트별 결과 출력**: `build.gradle`의 `test` 블록에 `testLogging { events "passed", "skipped", "failed" }`를 추가하면 테스트마다 PASSED/FAILED가 찍혀.
+  - **일부러 깨뜨려보기**: 예를 들어 `>`를 `>=`로 바꿔서 테스트가 실제로 실패하는지 확인해. 실패해야 할 때 실패하지 않으면, 그 테스트는 아무것도 검증하지 못하고 있는 거야.
+
 ---
 
 ## 5. 앱의 시작점
@@ -312,6 +445,38 @@ spring.jpa.properties.hibernate.format_sql=true
 
 ---
 
+## 11. JPA 엔티티 (`Note.java`)
+
+### 11.1 어노테이션
+| 어노테이션 | 무엇 | 내부적으로 하는 일 |
+|---|---|---|
+| `@Entity` | "이 클래스는 DB 테이블과 매핑된다"는 표시 | Hibernate가 앱 시작 시 이 클래스를 찾아서 메타데이터(테이블 이름, 컬럼)를 만들어. 개발 중에는 이걸 보고 `create table note (...)`를 자동으로 실행해(`ddl-auto`). |
+| `@Id` | 기본 키(Primary Key) 필드 | 엔티티를 구분하는 기준. `find`, `save`가 이 값을 기준으로 동작해. |
+| `@GeneratedValue(strategy = IDENTITY)` | 키 값을 DB가 자동 증가로 만들게 함 | `INSERT`할 때 id를 비워서 보내고, DB가 만든 값을 다시 읽어와 필드에 채워. |
+| `@Column(nullable = false, length = 100)` | 컬럼 제약 | 테이블을 만들 때 `NOT NULL`, `varchar(100)`으로 생성돼. **DB 제약일 뿐, 자바 객체 검증은 하지 않아.** |
+| `@PrePersist` / `@PreUpdate` | 생명주기 콜백(Lifecycle Callback) | Hibernate가 `INSERT` 직전, `UPDATE` 직전에 이 메서드를 자동으로 호출해. |
+
+### 11.2 `protected Note() {}` 기본 생성자가 왜 필요한가
+- Hibernate는 DB에서 데이터를 조회할 때 **먼저 빈 객체를 만들고**(기본 생성자 호출), 그다음 리플렉션(Reflection)으로 필드에 값을 채워.
+- 그래서 매개변수가 없는 생성자가 반드시 있어야 해.
+- `public`이 아니라 `protected`로 두는 이유: 다른 개발자(그리고 AI)가 `new Note()`로 **검증을 건너뛴 빈 노트**를 만드는 걸 막으려고. Hibernate는 protected도 접근할 수 있어.
+
+### 11.3 검증을 두 군데서 하는 이유 (도메인 vs DTO)
+- **DTO 검증(`@Valid`, `@NotBlank`)**: API 입구에서 잘못된 요청을 걸러내고, 사용자에게 400 에러와 친절한 메시지를 돌려줘.
+- **도메인 검증(생성자 안의 `if` + 예외)**: `Note` 객체가 **어떤 경로로 만들어지든** 항상 규칙을 지키게 보장해. 이렇게 객체가 항상 지켜야 하는 규칙을 **불변식(Invariant)**이라고 해.
+- DTO 검증만 있으면, 나중에 API가 아닌 다른 경로(배치 작업, 테스트 코드 등)로 노트를 만들 때 규칙이 깨질 수 있어.
+
+### 11.4 Setter를 만들지 않는 이유
+- `setTitle()`이 있으면 아무 곳에서나 제목을 바꿀 수 있고, 그때마다 검증을 우회할 수 있어.
+- 그래서 값을 바꾸는 건 의미 있는 이름의 메서드(예: 나중에 만들 `update(title, content)`)로만 허용하고, 그 안에서 다시 검증해.
+- 이게 CLAUDE.md의 "비즈니스 로직은 domain에 둔다"는 규칙의 구체적인 모습이야.
+
+### 11.5 테스트 메서드 이름을 한글로 쓰는 것
+- Java는 식별자(Identifier)에 유니코드를 허용해서 한글 메서드 이름도 문법상 문제가 없어.
+- 테스트 이름은 **문서 역할**을 하니까, 읽기 쉬운 한글이 유리해. 단, 운영 코드(main)에서는 영어를 쓰는 게 관례야.
+
+---
+
 ## 질문 기록
 
 대화 중에 나온 질문과 답을 날짜순으로 쌓는다.
@@ -347,3 +512,30 @@ spring.jpa.properties.hibernate.format_sql=true
 - 결과: `.git`, `CLAUDE.md`, `build.gradle`, `src`, `docs`가 모두 루트에 모였다. `note/` 폴더 삭제 완료.
 - 추가 작업: `application.properties`에 H2와 SQL 로그 설정을 추가했다(10절).
 - 다음 단계: `test` 실행 → 커밋 → GitHub 원격 저장소 연결(7절)
+
+### 2026-10-03 쓰고 있는 기술을 어떻게 분류하나
+- 질문: 무엇을 쓰는지는 알겠는데, 그것들을 백엔드/프론트엔드/언어 등으로 어떻게 분류하는지 모르겠다.
+- 답 요약: "어디서 실행되나 / 어떤 층인가 / 언제 쓰이나" 세 가지 기준으로 따로 나눈다(0.5절). 현재 프로젝트는 백엔드만 있고 프론트엔드는 아직 없다.
+- 헷갈렸던 점: 프레임워크와 라이브러리의 차이 → 누가 누구를 호출하느냐(제어의 역전)
+
+### 2026-10-03 진행 방식 변경
+- 결정: Claude가 코드를 제시하고, 내가 직접 타이핑하면서 이해한다. Claude Code의 자동 작성은 당분간 쓰지 않는다.
+
+### 2026-10-03 노란 전구를 눌러도 import 제안이 안 나옴
+- 상황: `NoteTest.java`에서 `@Test`, `assertThat`에 빨간 밑줄이 생겼고, 빠른 수정에도 import 제안이 없었다.
+- 원인 1: `NoteTest.java`를 `src/main/java/.../domain/`에 만들었다. JUnit과 AssertJ는 `testImplementation`이라 main에서는 보이지 않는다(4.2절).
+- 원인 2: `Note.java`와 `NoteTest.java`가 디스크에 0바이트였다. 저장(`Ctrl+S`)하지 않은 상태라서, Gradle에는 빈 파일로 보인다.
+- 해결: 두 파일을 저장하고, `NoteTest.java`를 `src/test/java/com/sunghyun/note/domain/`으로 옮긴다.
+- 배운 점: 빨간 밑줄의 원인이 "import가 없다"가 아니라 "그 클래스를 볼 수 없는 위치에 있다"일 수도 있다.
+
+### 2026-10-03 `assertThat(String) is undefined for the type NoteTest`
+- 원인 1: `assertThat`의 정적 임포트(`import static ...Assertions.assertThat;`)가 빠졌다(4.4절).
+- 원인 2: 11번째 줄에 `isequalTo`라고 오타를 냈다. 정확한 이름은 `isEqualTo`다(4.5절).
+- 배운 점: 에러 메시지의 "for the type NoteTest"는, 컴파일러가 그 메서드를 NoteTest 안에서 찾다가 실패했다는 뜻이다.
+
+### 2026-10-03 테스트는 전부 통과했는데 `@Entity`가 빠져 있었다
+- 상황: `.\gradlew.bat test`는 `BUILD SUCCESSFUL`. `NoteTest` 6개, `contextLoads` 1개 모두 통과.
+- 발견: `Note.java`에 `@Entity`와 그 import가 빠져 있었다. 그래서 Hibernate가 Note를 엔티티로 인식하지 않았고, 로그에 `create table note` SQL이 없었다.
+- 왜 테스트가 못 잡았나: `NoteTest`는 Spring과 JPA 없이 순수 자바 객체만 검사한다. `contextLoads`도 Note를 사용하는 Bean이 없으니 문제를 일으키지 않는다. **아무 테스트도 JPA 매핑을 검증하지 않았다.**
+- 다음에 잡히는 곳: ② Repository 단계에서 `@DataJpaTest`로 실제 저장/조회 테스트를 쓰면, `@Entity`가 없을 때 바로 실패한다.
+- 배운 점: `BUILD SUCCESSFUL`은 "작성한 테스트가 통과했다"일 뿐이다. 로그(여기서는 `create table`)처럼 **기대한 일이 실제로 일어났다는 증거**를 따로 확인해야 한다(4.6절).
